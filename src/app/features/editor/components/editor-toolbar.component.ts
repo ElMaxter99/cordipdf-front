@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -7,7 +8,7 @@ import { MatMenuModule } from '@angular/material/menu';
 @Component({
   selector: 'app-editor-toolbar',
   standalone: true,
-  imports: [MatButtonModule, MatButtonToggleModule, MatIconModule, MatMenuModule],
+  imports: [CommonModule, MatButtonModule, MatButtonToggleModule, MatIconModule, MatMenuModule],
   templateUrl: './editor-toolbar.component.html',
   styleUrl: './editor-toolbar.component.scss'
 })

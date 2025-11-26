@@ -35,7 +35,7 @@
       <p class="text-gray-500 mb-2">{{ template.description }}</p>
       <mat-chip-set>
         <mat-chip>Pages: {{ template.pages.length }}</mat-chip>
-        <mat-chip color="primary" selected>{{ template.pages[0]?.fields.length || 0 }} campos</mat-chip>
+        <mat-chip color="primary" selected>{{ template.pages.length ? template.pages[0].fields.length : 0 }} campos</mat-chip>
       </mat-chip-set>
     </mat-card-content>
     <mat-card-actions align="end">
