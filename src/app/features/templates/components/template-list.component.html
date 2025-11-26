@@ -1,0 +1,49 @@
+<section class="flex items-center justify-between mb-6">
+  <div>
+    <p class="text-sm text-gray-500">Gestor de plantillas PDF</p>
+    <h2 class="text-2xl font-semibold">Plantillas</h2>
+  </div>
+  <button mat-flat-button color="primary" (click)="toggleForm()">
+    <mat-icon>{{ showForm() ? 'close' : 'add' }}</mat-icon>
+    {{ showForm() ? 'Cerrar' : 'Nueva plantilla' }}
+  </button>
+</section>
+
+<section *ngIf="showForm()" class="mb-6">
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>Crear plantilla</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <app-template-form (submitTemplate)="handleCreate($event)"></app-template-form>
+    </mat-card-content>
+  </mat-card>
+</section>
+
+<section class="grid gap-4 md:grid-cols-2">
+  <mat-card *ngFor="let template of templates$ | async" class="hover:shadow-xl transition-shadow">
+    <mat-card-header>
+      <mat-card-title class="flex items-center gap-2">
+        <mat-icon>picture_as_pdf</mat-icon>
+        {{ template.name }}
+      </mat-card-title>
+      <mat-card-subtitle>
+        Actualizado {{ template.updatedAt | date: 'short' }}
+      </mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <p class="text-gray-500 mb-2">{{ template.description }}</p>
+      <mat-chip-set>
+        <mat-chip>Pages: {{ template.pages.length }}</mat-chip>
+        <mat-chip color="primary" selected>{{ template.pages[0]?.fields.length || 0 }} campos</mat-chip>
+      </mat-chip-set>
+    </mat-card-content>
+    <mat-card-actions align="end">
+      <a mat-stroked-button [routerLink]="['/templates', template.id]">Detalles</a>
+      <a mat-flat-button color="primary" [routerLink]="['/editor', template.id]">Editar</a>
+      <button mat-icon-button color="warn" (click)="delete(template, $event)">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</section>

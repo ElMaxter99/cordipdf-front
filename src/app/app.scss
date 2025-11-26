@@ -1,0 +1,31 @@
+.app-shell {
+  height: 100vh;
+}
+
+.app-sidenav {
+  width: 240px;
+  padding: 1rem;
+  background: linear-gradient(180deg, rgba(14, 165, 233, 0.08), rgba(14, 165, 233, 0.02));
+}
+
+.app-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.app-content {
+  padding: 1.5rem;
+  min-height: calc(100vh - 64px);
+}
+
+.active {
+  background: rgba(14, 165, 233, 0.12);
+}
+
+.sidenav-header {
+  display: flex;
+  align-items: center;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}

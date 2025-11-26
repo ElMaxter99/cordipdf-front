@@ -1,0 +1,21 @@
+<div class="space-y-4">
+  <div
+    class="relative flex justify-center"
+    *ngFor="let page of pageDimensions; trackBy: trackByPage"
+    [style.width.px]="page.width * scale"
+    [style.height.px]="page.height * scale"
+  >
+    <canvas #pageCanvas [attr.data-page]="page.num"></canvas>
+    <app-editor-canvas
+      class="absolute left-0 top-0"
+      [pageNum]="page.num"
+      [width]="page.width"
+      [height]="page.height"
+      [scale]="scale"
+      [fields]="pages.find((p) => p.num === page.num)?.fields || []"
+      [selectedFieldId]="selectedFieldId"
+      (selectField)="onSelect(pages.find((p) => p.num === page.num)!, $event.id)"
+      (fieldsChange)="onFieldsChange(pages.find((p) => p.num === page.num)!, $event)"
+    ></app-editor-canvas>
+  </div>
+</div>

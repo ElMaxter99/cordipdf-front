@@ -1,0 +1,36 @@
+<section class="mb-4 flex items-center justify-between">
+  <div>
+    <p class="text-sm text-gray-500">Plantilla</p>
+    <h2 class="text-2xl font-semibold">Detalles</h2>
+  </div>
+  <a mat-stroked-button routerLink="/templates">Volver</a>
+</section>
+
+<ng-container *ngIf="template$ | async as template">
+  <mat-card appearance="outlined" class="mb-4">
+    <mat-card-header>
+      <mat-card-title class="flex items-center gap-2">
+        {{ template.name }}
+      </mat-card-title>
+      <mat-card-subtitle>Creado {{ template.createdAt | date: 'short' }}</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <p class="text-gray-500 mb-4">{{ template.description }}</p>
+      <p class="text-sm text-gray-400">{{ template.pdfUrl }}</p>
+    </mat-card-content>
+    <mat-card-actions align="end">
+      <a mat-flat-button color="primary" [routerLink]="['/editor', template.id]">Abrir editor</a>
+    </mat-card-actions>
+  </mat-card>
+
+  <mat-divider class="my-4"></mat-divider>
+
+  <mat-card appearance="outlined">
+    <mat-card-header>
+      <mat-card-title>Editar metadatos</mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <app-template-form [template]="template" (submitTemplate)="updateTemplate($event)"></app-template-form>
+    </mat-card-content>
+  </mat-card>
+</ng-container>

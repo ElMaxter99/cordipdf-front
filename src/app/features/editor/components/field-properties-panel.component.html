@@ -1,0 +1,54 @@
+<div *ngIf="selected; else empty" class="space-y-3">
+  <h3 class="text-lg font-semibold">Propiedades</h3>
+  <form class="space-y-3" [formGroup]="form" (ngSubmit)="submit()">
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>Nombre de campo</mat-label>
+      <input matInput formControlName="mapField" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>Texto</mat-label>
+      <input matInput formControlName="value" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>Tamaño de fuente</mat-label>
+      <input matInput type="number" formControlName="fontSize" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>Fuente</mat-label>
+      <mat-select formControlName="fontFamily">
+        <mat-option *ngFor="let font of fonts" [value]="font">{{ font }}</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="grid grid-cols-2 gap-3">
+      <mat-form-field appearance="outline">
+        <mat-label>Color</mat-label>
+        <input matInput type="color" formControlName="color" />
+      </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Fondo</mat-label>
+        <input matInput type="color" formControlName="backgroundColor" />
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="w-full">
+      <mat-label>Opacidad</mat-label>
+      <input matInput type="number" step="0.1" min="0" max="1" formControlName="opacity" />
+    </mat-form-field>
+
+    <mat-slide-toggle formControlName="locked">Bloqueado</mat-slide-toggle>
+    <mat-slide-toggle formControlName="hidden">Oculto</mat-slide-toggle>
+    <mat-slide-toggle formControlName="multiline">Multilínea</mat-slide-toggle>
+
+    <button mat-flat-button color="primary" type="submit" class="w-full">Actualizar</button>
+  </form>
+</div>
+
+<ng-template #empty>
+  <div class="text-center text-gray-500 mt-10">
+    Selecciona un campo para editar sus propiedades.
+  </div>
+</ng-template>

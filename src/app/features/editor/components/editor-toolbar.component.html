@@ -1,0 +1,25 @@
+<div class="flex items-center gap-2">
+  <button mat-icon-button color="primary" (click)="save.emit()">
+    <mat-icon>save</mat-icon>
+  </button>
+  <button mat-icon-button (click)="undo.emit()" [disabled]="!canUndo">
+    <mat-icon>undo</mat-icon>
+  </button>
+  <button mat-icon-button (click)="redo.emit()" [disabled]="!canRedo">
+    <mat-icon>redo</mat-icon>
+  </button>
+  <button mat-flat-button color="primary" (click)="addField.emit()">
+    <mat-icon>add</mat-icon>
+    Campo
+  </button>
+
+  <button mat-button [matMenuTriggerFor]="zoomMenu">
+    Zoom {{ zoom * 100 | number: '1.0-0' }}%
+    <mat-icon>arrow_drop_down</mat-icon>
+  </button>
+  <mat-menu #zoomMenu="matMenu">
+    <button mat-menu-item *ngFor="let level of zoomLevels" (click)="changeZoom(level)">
+      {{ level * 100 | number: '1.0-0' }}%
+    </button>
+  </mat-menu>
+</div>

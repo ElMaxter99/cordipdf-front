@@ -1,0 +1,27 @@
+<form class="space-y-4" (ngSubmit)="submit()" [formGroup]="form">
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>Nombre</mat-label>
+    <input matInput placeholder="Plantilla" formControlName="name" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="w-full">
+    <mat-label>Descripción</mat-label>
+    <textarea matInput rows="3" formControlName="description"></textarea>
+  </mat-form-field>
+
+  <div class="flex items-center gap-4">
+    <button mat-stroked-button color="primary" type="button">
+      <mat-icon>picture_as_pdf</mat-icon>
+      <span>Subir PDF</span>
+      <input
+        type="file"
+        accept="application/pdf"
+        class="absolute inset-0 opacity-0 cursor-pointer"
+        (change)="onFileChange($event)"
+      />
+    </button>
+    <span class="text-sm text-gray-500" *ngIf="pdfFile">{{ pdfFile.name }}</span>
+  </div>
+
+  <button mat-flat-button color="primary" type="submit" class="w-full">Guardar</button>
+</form>
