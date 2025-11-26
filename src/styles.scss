@@ -1,4 +1,5 @@
 @use '@angular/material' as mat;
+@use '@angular/material/color' as mat-color;
 
 @include mat.core();
 
@@ -6,9 +7,9 @@ $light-theme: mat.define-theme(
   (
     color: (
       theme-type: light,
-      primary: mat.$cyan-palette,
-      secondary: mat.$indigo-palette,
-      tertiary: mat.$blue-palette
+      primary: mat-color.$cyan-palette,
+      secondary: mat-color.$indigo-palette,
+      tertiary: mat-color.$blue-palette
     ),
     density: 0,
     typography: mat.define-typography-config()
@@ -19,9 +20,9 @@ $dark-theme: mat.define-theme(
   (
     color: (
       theme-type: dark,
-      primary: mat.$cyan-palette,
-      secondary: mat.$indigo-palette,
-      tertiary: mat.$blue-palette
+      primary: mat-color.$cyan-palette,
+      secondary: mat-color.$indigo-palette,
+      tertiary: mat-color.$blue-palette
     ),
     density: 0,
     typography: mat.define-typography-config()
