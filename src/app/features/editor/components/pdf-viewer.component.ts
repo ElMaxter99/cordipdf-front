@@ -94,6 +94,10 @@ export class PdfViewerComponent implements AfterViewInit, OnChanges {
     }
   }
 
+  getPageFields(pageNum: number): TemplatePage['fields'] {
+    return this.pages.find((p) => p.num === pageNum)?.fields ?? [];
+  }
+
   onFieldsChange(page: TemplatePage, fields: TemplatePage['fields']): void {
     const updated = this.pages.map((p) => (p.num === page.num ? { ...p, fields } : p));
     this.pages = updated;

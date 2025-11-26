@@ -12,10 +12,10 @@
       [width]="page.width"
       [height]="page.height"
       [scale]="scale"
-      [fields]="pages.find((p) => p.num === page.num)?.fields || []"
+      [fields]="getPageFields(page.num)"
       [selectedFieldId]="selectedFieldId"
-      (selectField)="onSelect(pages.find((p) => p.num === page.num)!, $event.id)"
-      (fieldsChange)="onFieldsChange(pages.find((p) => p.num === page.num)!, $event)"
+      (selectField)="onSelect({ num: page.num, fields: getPageFields(page.num) }, $event.id)"
+      (fieldsChange)="onFieldsChange({ num: page.num, fields: getPageFields(page.num) }, $event)"
     ></app-editor-canvas>
   </div>
 </div>

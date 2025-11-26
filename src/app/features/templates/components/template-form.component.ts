@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -17,13 +17,15 @@ export class TemplateFormComponent {
   @Input() template?: PdfTemplate;
   @Output() submitTemplate = new EventEmitter<{ name: string; description: string; file?: File }>();
 
-  readonly form = this.fb.group({
-    name: ['', Validators.required],
-    description: ['']
-  });
+  readonly form: FormGroup;
   pdfFile?: File;
 
-  constructor(private readonly fb: FormBuilder) {}
+  constructor(private readonly fb: FormBuilder) {
+    this.form = this.fb.group({
+      name: ['', Validators.required],
+      description: ['']
+    });
+  }
 
   ngOnChanges(): void {
     if (this.template) {

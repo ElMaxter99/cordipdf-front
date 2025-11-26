@@ -1,5 +1,6 @@
 import { AsyncPipe, DatePipe, NgFor, NgIf } from '@angular/common';
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
+import { Observable } from 'rxjs';
 import { RouterLink } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
@@ -29,11 +30,15 @@ import { TemplateFormComponent } from './template-form.component';
   templateUrl: './template-list.component.html',
   styleUrl: './template-list.component.scss'
 })
-export class TemplateListComponent {
-  readonly templates$ = this.templateService.getAll();
+export class TemplateListComponent implements OnInit {
+  templates$!: Observable<PdfTemplate[]>;
   readonly showForm = signal(false);
 
   constructor(private readonly templateService: TemplateService) {}
+
+  ngOnInit(): void {
+    this.templates$ = this.templateService.getAll();
+  }
 
   toggleForm(): void {
     this.showForm.set(!this.showForm());

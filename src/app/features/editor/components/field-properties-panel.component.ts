@@ -1,6 +1,6 @@
 import { NgIf } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -27,20 +27,22 @@ export class FieldPropertiesPanelComponent {
 
   readonly fonts = ['standard:roboto', 'standard:arial', 'standard:times'];
 
-  readonly form = this.fb.group({
-    mapField: [''],
-    fontSize: [14],
-    color: ['#111827'],
-    fontFamily: ['standard:roboto'],
-    backgroundColor: ['#ffffff'],
-    opacity: [1],
-    locked: [false],
-    hidden: [false],
-    multiline: [false],
-    value: ['']
-  });
+  readonly form: FormGroup;
 
-  constructor(private readonly fb: FormBuilder) {}
+  constructor(private readonly fb: FormBuilder) {
+    this.form = this.fb.group({
+      mapField: [''],
+      fontSize: [14],
+      color: ['#111827'],
+      fontFamily: ['standard:roboto'],
+      backgroundColor: ['#ffffff'],
+      opacity: [1],
+      locked: [false],
+      hidden: [false],
+      multiline: [false],
+      value: ['']
+    });
+  }
 
   submit(): void {
     if (!this.selected) return;
