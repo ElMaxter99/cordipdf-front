@@ -113,22 +113,19 @@ export class FieldPropertiesPanelComponent implements OnChanges {
   protected form: FormGroup<FieldForm>;
 
   constructor(private readonly fb: FormBuilder) {
-    this.form = this.fb.group<FieldForm>(
-      {
-        mapField: new FormControl('', { nonNullable: true }),
-        fontFamily: new FormControl(this.fonts[0], { nonNullable: true }),
-        fontSize: new FormControl(14, { nonNullable: true }),
-        color: new FormControl('#000000', { nonNullable: true }),
-        backgroundColor: new FormControl('#ffffff', { nonNullable: true }),
-        opacity: new FormControl(1, { nonNullable: true }),
-        width: new FormControl(180, { nonNullable: true }),
-        height: new FormControl(28, { nonNullable: true }),
-        multiline: new FormControl(false, { nonNullable: true }),
-        locked: new FormControl(false, { nonNullable: true }),
-        hidden: new FormControl(false, { nonNullable: true })
-      },
-      { nonNullable: true }
-    );
+    this.form = this.fb.group<FieldForm>({
+      mapField: new FormControl('', { nonNullable: true }),
+      fontFamily: new FormControl(this.fonts[0], { nonNullable: true }),
+      fontSize: new FormControl(14, { nonNullable: true }),
+      color: new FormControl('#000000', { nonNullable: true }),
+      backgroundColor: new FormControl('#ffffff', { nonNullable: true }),
+      opacity: new FormControl(1, { nonNullable: true }),
+      width: new FormControl(180, { nonNullable: true }),
+      height: new FormControl(28, { nonNullable: true }),
+      multiline: new FormControl(false, { nonNullable: true }),
+      locked: new FormControl(false, { nonNullable: true }),
+      hidden: new FormControl(false, { nonNullable: true })
+    });
   }
 
   ngOnChanges(): void {

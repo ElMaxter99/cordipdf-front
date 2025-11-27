@@ -11,7 +11,9 @@ $light-theme: mat.define-theme(
       primary: mat.$cyan-palette,
       tertiary: mat.$blue-palette
     ),
-    density: 0
+    density: (
+      scale: 0
+    )
   )
 );
 
@@ -22,7 +24,9 @@ $dark-theme: mat.define-theme(
       primary: mat.$cyan-palette,
       tertiary: mat.$blue-palette
     ),
-    density: 0
+    density: (
+      scale: 0
+    )
   )
 );
 
