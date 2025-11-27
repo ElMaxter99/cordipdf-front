@@ -1,0 +1,15 @@
+:host {
+  display: block;
+}
+
+mat-sidenav-container {
+  min-height: 100vh;
+}
+
+.mat-toolbar {
+  position: sticky;
+}
+
+.active {
+  background: rgba(63, 81, 181, 0.1);
+}

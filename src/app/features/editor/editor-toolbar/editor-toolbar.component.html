@@ -1,0 +1,35 @@
+<div class="flex items-center gap-2">
+  <button mat-flat-button color="primary" (click)="save.emit()" matTooltip="Guardar (Ctrl+S)">
+    <mat-icon>save</mat-icon>
+    Guardar
+  </button>
+  <button mat-icon-button (click)="undo.emit()" matTooltip="Deshacer">
+    <mat-icon>undo</mat-icon>
+  </button>
+  <button mat-icon-button (click)="redo.emit()" matTooltip="Rehacer">
+    <mat-icon>redo</mat-icon>
+  </button>
+  <button mat-stroked-button (click)="addTextField.emit()">
+    <mat-icon>text_fields</mat-icon>
+    Texto
+  </button>
+  <button mat-stroked-button (click)="addImageField.emit()">
+    <mat-icon>image</mat-icon>
+    Imagen
+  </button>
+  <div class="flex items-center gap-1 ml-auto">
+    <mat-icon>zoom_in</mat-icon>
+    <button
+      mat-stroked-button
+      [matMenuTriggerFor]="zoomMenu"
+      aria-label="Zoom"
+    >
+      {{ (zoom * 100) | number: '1.0-0' }}%
+    </button>
+    <mat-menu #zoomMenu="matMenu">
+      <button mat-menu-item *ngFor="let level of zoomLevels" (click)="zoomChange.emit(level)">
+        {{ (level * 100) | number: '1.0-0' }}%
+      </button>
+    </mat-menu>
+  </div>
+</div>

@@ -1,0 +1,53 @@
+<ng-container *ngIf="template as tpl">
+  <div class="flex items-center justify-between mb-3">
+    <div>
+      <h2 class="text-xl font-semibold">Editor de plantilla</h2>
+      <p class="text-sm text-gray-500">{{ tpl.name }}</p>
+    </div>
+    <a mat-stroked-button color="primary" [routerLink]="['/templates', tpl.id]">
+      <mat-icon>arrow_back</mat-icon>
+      Volver a detalle
+    </a>
+  </div>
+
+  <app-editor-toolbar
+    [zoom]="zoom"
+    [zoomLevels]="zoomLevels"
+    (save)="save()"
+    (undo)="undo()"
+    (redo)="redo()"
+    (addTextField)="addTextField()"
+    (addImageField)="addImageField()"
+    (zoomChange)="onZoomChange($event)"
+    class="mb-3"
+  />
+
+  <div class="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4">
+    <div class="relative bg-white dark:bg-slate-900 rounded shadow-sm p-4">
+      <div
+        class="relative"
+        [style.height.px]="canvasHeight"
+        [style.width.px]="canvasWidth"
+      >
+        <app-pdf-viewer
+          [src]="tpl.pdfUrl || pdfSrc"
+          [scale]="zoom"
+          (pageRendered)="onPageRendered($event)"
+        />
+        <app-editor-canvas
+          class="overlay"
+          [pages]="pages"
+          [fields]="fields"
+          [scale]="zoom"
+          [selectedFieldId]="selectedField?.id"
+          (fieldSelected)="onFieldSelected($event)"
+          (fieldUpdated)="onFieldUpdated($event)"
+        />
+      </div>
+    </div>
+    <app-field-properties-panel
+      [field]="selectedField"
+      (fieldChange)="updateFieldFromPanel($event)"
+    />
+  </div>
+</ng-container>

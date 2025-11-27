@@ -1,0 +1,48 @@
+<mat-card>
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <h2 class="text-lg font-semibold">Plantillas</h2>
+      <p class="text-sm text-gray-500">Gestiona tus plantillas de PDF.</p>
+    </div>
+    <a mat-flat-button color="primary" routerLink="/templates/new">
+      <mat-icon>add</mat-icon>
+      Nueva plantilla
+    </a>
+  </div>
+  <table mat-table [dataSource]="templateService.templates()" class="w-full">
+    <ng-container matColumnDef="name">
+      <th mat-header-cell *matHeaderCellDef>Nombre</th>
+      <td mat-cell *matCellDef="let template">
+        <a [routerLink]="['/templates', template.id]" class="font-semibold">{{ template.name }}</a>
+      </td>
+    </ng-container>
+
+    <ng-container matColumnDef="description">
+      <th mat-header-cell *matHeaderCellDef>Descripción</th>
+      <td mat-cell *matCellDef="let template">{{ template.description }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="updatedAt">
+      <th mat-header-cell *matHeaderCellDef>Actualizado</th>
+      <td mat-cell *matCellDef="let template">{{ template.updatedAt | date: 'medium' }}</td>
+    </ng-container>
+
+    <ng-container matColumnDef="actions">
+      <th mat-header-cell *matHeaderCellDef></th>
+      <td mat-cell *matCellDef="let template" class="actions">
+        <a mat-icon-button [routerLink]="['/editor', template.id]" matTooltip="Editar">
+          <mat-icon>edit</mat-icon>
+        </a>
+        <a mat-icon-button [routerLink]="['/templates', template.id]" matTooltip="Detalles">
+          <mat-icon>visibility</mat-icon>
+        </a>
+        <button mat-icon-button color="warn" (click)="delete(template)" matTooltip="Eliminar">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </td>
+    </ng-container>
+
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+  </table>
+</mat-card>

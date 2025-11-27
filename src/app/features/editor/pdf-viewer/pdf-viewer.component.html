@@ -1,0 +1,10 @@
+<div class="pdf-viewer" *ngIf="!loading; else loadingTpl">
+  <mat-card *ngFor="let page of pageIndices" class="mb-4">
+    <canvas #pageCanvas class="pdf-canvas" [attr.data-page]="page"></canvas>
+  </mat-card>
+</div>
+<ng-template #loadingTpl>
+  <div class="flex justify-center py-10">
+    <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
+  </div>
+</ng-template>
