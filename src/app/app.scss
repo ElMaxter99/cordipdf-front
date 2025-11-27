@@ -1,0 +1,61 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  color: var(--mat-sys-on-surface);
+  background: var(--mat-sys-surface);
+}
+
+.shell {
+  height: 100vh;
+  background: var(--mat-sys-surface-container-low);
+}
+
+.main {
+  padding: 1.5rem;
+  min-height: calc(100vh - 64px);
+  background: var(--mat-sys-surface);
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.sidenav {
+  width: 260px;
+  padding: 1rem;
+  background: var(--mat-sys-surface-container);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.sidenav-footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+}
+
+.title {
+  font-weight: 600;
+}
+
+.spacer {
+  flex: 1;
+}
+
+mat-nav-list a.active {
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent);
+}
+
+mat-nav-list a.active mat-icon,
+mat-nav-list a.active span {
+  color: var(--mat-sys-primary);
+}
