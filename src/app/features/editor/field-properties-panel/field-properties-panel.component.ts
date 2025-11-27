@@ -1,11 +1,6 @@
 import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import {
-  FormControl,
-  FormGroup,
-  NonNullableFormBuilder,
-  ReactiveFormsModule
-} from '@angular/forms';
+import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -117,20 +112,23 @@ export class FieldPropertiesPanelComponent implements OnChanges {
   protected readonly fonts = FONT_OPTIONS;
   protected form: FormGroup<FieldForm>;
 
-  constructor(private readonly fb: NonNullableFormBuilder) {
-    this.form = this.fb.nonNullable.group({
-      mapField: '',
-      fontFamily: this.fonts[0],
-      fontSize: 14,
-      color: '#000000',
-      backgroundColor: '#ffffff',
-      opacity: 1,
-      width: 180,
-      height: 28,
-      multiline: false,
-      locked: false,
-      hidden: false
-    });
+  constructor(private readonly fb: FormBuilder) {
+    this.form = this.fb.group<FieldForm>(
+      {
+        mapField: new FormControl('', { nonNullable: true }),
+        fontFamily: new FormControl(this.fonts[0], { nonNullable: true }),
+        fontSize: new FormControl(14, { nonNullable: true }),
+        color: new FormControl('#000000', { nonNullable: true }),
+        backgroundColor: new FormControl('#ffffff', { nonNullable: true }),
+        opacity: new FormControl(1, { nonNullable: true }),
+        width: new FormControl(180, { nonNullable: true }),
+        height: new FormControl(28, { nonNullable: true }),
+        multiline: new FormControl(false, { nonNullable: true }),
+        locked: new FormControl(false, { nonNullable: true }),
+        hidden: new FormControl(false, { nonNullable: true })
+      },
+      { nonNullable: true }
+    );
   }
 
   ngOnChanges(): void {
