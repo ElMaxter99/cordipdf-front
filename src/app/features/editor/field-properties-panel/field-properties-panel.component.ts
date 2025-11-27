@@ -1,6 +1,11 @@
 import { Component, EventEmitter, Input, OnChanges, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import {
+  FormControl,
+  FormGroup,
+  NonNullableFormBuilder,
+  ReactiveFormsModule
+} from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -110,9 +115,9 @@ export class FieldPropertiesPanelComponent implements OnChanges {
   @Output() updated = new EventEmitter<TemplateField>();
 
   protected readonly fonts = FONT_OPTIONS;
-  protected form: ReturnType<FormBuilder['nonNullable']['group']>;
+  protected form: FormGroup<FieldForm>;
 
-  constructor(private readonly fb: FormBuilder) {
+  constructor(private readonly fb: NonNullableFormBuilder) {
     this.form = this.fb.nonNullable.group({
       mapField: '',
       fontFamily: this.fonts[0],
@@ -136,14 +141,29 @@ export class FieldPropertiesPanelComponent implements OnChanges {
 
   save(): void {
     if (!this.field) return;
+    const value = this.form.getRawValue();
     const updated: TemplateField = {
       ...this.field,
-      ...this.form.value,
-      fontSize: Number(this.form.value.fontSize),
-      opacity: Number(this.form.value.opacity),
-      width: Number(this.form.value.width),
-      height: Number(this.form.value.height)
+      ...value,
+      fontSize: Number(value.fontSize),
+      opacity: Number(value.opacity),
+      width: Number(value.width),
+      height: Number(value.height)
     } as TemplateField;
     this.updated.emit(updated);
   }
 }
+
+type FieldForm = {
+  mapField: FormControl<string>;
+  fontFamily: FormControl<string>;
+  fontSize: FormControl<number>;
+  color: FormControl<string>;
+  backgroundColor: FormControl<string>;
+  opacity: FormControl<number>;
+  width: FormControl<number>;
+  height: FormControl<number>;
+  multiline: FormControl<boolean>;
+  locked: FormControl<boolean>;
+  hidden: FormControl<boolean>;
+};

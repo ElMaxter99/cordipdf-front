@@ -1,5 +1,4 @@
 @use '@angular/material' as mat;
-@use '@angular/material/typography' as mat-typography;
 
 @tailwind base;
 @tailwind components;
@@ -12,7 +11,7 @@ $light-theme: mat.define-theme(
       primary: mat.$cyan-palette,
       tertiary: mat.$blue-palette
     ),
-    typography: mat-typography.define-typography-config(),
+    typography: mat.define-typography-config(),
     density: 0
   )
 );
@@ -24,7 +23,7 @@ $dark-theme: mat.define-theme(
       primary: mat.$cyan-palette,
       tertiary: mat.$blue-palette
     ),
-    typography: mat-typography.define-typography-config(),
+    typography: mat.define-typography-config(),
     density: 0
   )
 );
