@@ -1,1 +1,58 @@
-/* You can add global styles to this file, and also import other style files */
+@use '@angular/material' as mat;
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+$primary: mat.m2-define-palette(mat.$m2-indigo-palette);
+$accent: mat.m2-define-palette(mat.$m2-blue-grey-palette);
+$warn: mat.m2-define-palette(mat.$m2-red-palette);
+
+$light-theme: mat.m2-define-light-theme(
+  (
+    color: (
+      primary: $primary,
+      accent: $accent,
+      warn: $warn
+    )
+  )
+);
+
+$dark-theme: mat.m2-define-dark-theme(
+  (
+    color: (
+      primary: $primary,
+      accent: $accent,
+      warn: $warn
+    )
+  )
+);
+
+@include mat.all-component-themes($light-theme);
+
+.dark-theme {
+  @include mat.all-component-colors($dark-theme);
+  background-color: #0f172a;
+  color: #e2e8f0;
+}
+
+body {
+  font-family: 'Inter', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  margin: 0;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.muted-text {
+  color: #64748b;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.full-height {
+  min-height: 100vh;
+}
