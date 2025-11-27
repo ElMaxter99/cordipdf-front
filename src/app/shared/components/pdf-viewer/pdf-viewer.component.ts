@@ -2,9 +2,9 @@ import { AfterViewInit, Component, ElementRef, EventEmitter, Input, OnChanges, O
 import { CommonModule } from '@angular/common';
 import { getDocument, GlobalWorkerOptions, PDFDocumentProxy } from 'pdfjs-dist';
 import type { RenderParameters } from 'pdfjs-dist/types/src/display/api';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs';
 
-GlobalWorkerOptions.workerSrc = new URL(pdfjsWorker, import.meta.url).toString();
+const workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url);
+GlobalWorkerOptions.workerSrc = workerSrc.toString();
 
 export interface PdfPageDimensions {
   num: number;
