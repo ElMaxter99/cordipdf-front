@@ -1,1 +1,40 @@
-/* You can add global styles to this file, and also import other style files */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-app: #f8fafc;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', 'Roboto', sans-serif;
+  background: var(--bg-app);
+}
+
+.dark-theme {
+  --bg-app: #0f172a;
+  color-scheme: dark;
+  background: #0f172a;
+}
+
+.light-theme {
+  color-scheme: light;
+}
+
+.mat-mdc-button.mat-primary,
+.mat-mdc-unelevated-button.mat-primary {
+  text-transform: none;
+}
+
+.text-surface-variant {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.border-outline {
+  border-color: var(--mat-sys-outline-variant);
+}
+
+.bg-surface {
+  background: var(--mat-sys-surface);
+}

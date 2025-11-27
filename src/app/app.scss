@@ -1,0 +1,27 @@
+.app-shell {
+  height: 100vh;
+  background: var(--mat-sys-background);
+}
+
+.app-sidenav {
+  width: 280px;
+  background: var(--mat-sys-surface);
+  border-right: 1px solid var(--mat-sys-outline-variant);
+}
+
+.app-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.app-main {
+  padding: 1.5rem;
+  min-height: calc(100vh - 64px);
+  background: var(--mat-sys-surface-container);
+}
+
+.active-link {
+  background: color-mix(in srgb, var(--mat-sys-primary) 8%, transparent);
+  border-radius: 0.75rem;
+}
