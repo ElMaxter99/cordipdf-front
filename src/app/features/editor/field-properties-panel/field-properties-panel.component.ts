@@ -110,21 +110,23 @@ export class FieldPropertiesPanelComponent implements OnChanges {
   @Output() updated = new EventEmitter<TemplateField>();
 
   protected readonly fonts = FONT_OPTIONS;
-  protected form = this.fb.nonNullable.group({
-    mapField: '',
-    fontFamily: this.fonts[0],
-    fontSize: 14,
-    color: '#000000',
-    backgroundColor: '#ffffff',
-    opacity: 1,
-    width: 180,
-    height: 28,
-    multiline: false,
-    locked: false,
-    hidden: false
-  });
+  protected form: ReturnType<FormBuilder['nonNullable']['group']>;
 
-  constructor(private readonly fb: FormBuilder) {}
+  constructor(private readonly fb: FormBuilder) {
+    this.form = this.fb.nonNullable.group({
+      mapField: '',
+      fontFamily: this.fonts[0],
+      fontSize: 14,
+      color: '#000000',
+      backgroundColor: '#ffffff',
+      opacity: 1,
+      width: 180,
+      height: 28,
+      multiline: false,
+      locked: false,
+      hidden: false
+    });
+  }
 
   ngOnChanges(): void {
     if (this.field) {

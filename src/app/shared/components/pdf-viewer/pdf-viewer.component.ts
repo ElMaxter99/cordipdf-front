@@ -1,6 +1,7 @@
 import { AfterViewInit, Component, ElementRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { getDocument, GlobalWorkerOptions, PDFDocumentProxy, RenderParameters } from 'pdfjs-dist';
+import { getDocument, GlobalWorkerOptions, PDFDocumentProxy } from 'pdfjs-dist';
+import type { RenderParameters } from 'pdfjs-dist/types/src/display/api';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs';
 
 GlobalWorkerOptions.workerSrc = new URL(pdfjsWorker, import.meta.url).toString();
