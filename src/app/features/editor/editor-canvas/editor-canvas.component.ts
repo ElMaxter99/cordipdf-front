@@ -1,4 +1,14 @@
-import { AfterViewInit, Component, ElementRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  OnChanges,
+  Output,
+  SimpleChanges,
+  ViewChild
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import Konva from 'konva';
 import { TemplateField } from '../../../shared/models/template.model';
@@ -16,6 +26,7 @@ import { TemplateField } from '../../../shared/models/template.model';
         position: absolute;
         inset: 0;
         pointer-events: none;
+        z-index: 1;
       }
     `
   ]
@@ -42,11 +53,13 @@ export class EditorCanvasComponent implements AfterViewInit, OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['width'] || changes['height']) {
-      this.buildStage();
+      this.resizeStage();
     }
-    if (changes['fields'] && this.stage) {
+
+    if ((changes['zoom'] && !changes['zoom'].firstChange) || changes['fields']) {
       this.renderFields();
     }
+
     if (changes['selectedFieldId'] && this.stage && this.transformer) {
       this.attachTransformer();
     }
@@ -74,6 +87,16 @@ export class EditorCanvasComponent implements AfterViewInit, OnChanges {
     });
     this.layer.add(this.transformer);
     this.stage.add(this.layer);
+    this.renderFields();
+  }
+
+  private resizeStage(): void {
+    if (!this.stage) {
+      this.buildStage();
+      return;
+    }
+
+    this.stage.size({ width: this.width, height: this.height });
     this.renderFields();
   }
 
