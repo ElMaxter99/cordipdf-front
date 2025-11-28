@@ -26,6 +26,19 @@ export class UndoRedoService<T> {
     return this.clone(this.redoStack.pop() as T);
   }
 
+  canUndo(): boolean {
+    return this.undoStack.length > 0;
+  }
+
+  canRedo(): boolean {
+    return this.redoStack.length > 0;
+  }
+
+  clear(): void {
+    this.undoStack = [];
+    this.redoStack = [];
+  }
+
   private clone(state: T): T {
     return JSON.parse(JSON.stringify(state));
   }
