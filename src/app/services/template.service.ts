@@ -7,9 +7,35 @@ import { MockTemplateBackend } from './templates.mock';
 @Injectable({ providedIn: 'root' })
 export class TemplateService {
   private readonly apiUrl = '/api/templates';
-  private readonly templates$ = new BehaviorSubject<Template[]>(MockTemplateBackend.initialData());
+  private readonly storageKey = 'cordipdf.templates';
+  private readonly templates$ = new BehaviorSubject<Template[]>(this.loadTemplates());
 
   constructor(private readonly http: HttpClient) {}
+
+  private loadTemplates(): Template[] {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const raw = localStorage.getItem(this.storageKey);
+        if (raw) {
+          return JSON.parse(raw) as Template[];
+        }
+      } catch (error) {
+        console.error('Error loading templates from storage', error);
+      }
+    }
+    return MockTemplateBackend.initialData();
+  }
+
+  private persist(templates: Template[]): void {
+    this.templates$.next(templates);
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem(this.storageKey, JSON.stringify(templates));
+      } catch (error) {
+        console.error('Error persisting templates', error);
+      }
+    }
+  }
 
   getAll(): Observable<Template[]> {
     return this.templates$.asObservable().pipe(delay(150));
@@ -33,7 +59,8 @@ export class TemplateService {
       id: crypto.randomUUID(),
       updatedAt: new Date().toISOString()
     };
-    this.templates$.next([...this.templates$.value, newTemplate]);
+    const templates = [...this.templates$.value, newTemplate];
+    this.persist(templates);
     return of(newTemplate).pipe(delay(150));
   }
 
@@ -42,7 +69,7 @@ export class TemplateService {
       template.id === id ? { ...template, ...changes, updatedAt: new Date().toISOString() } : template
     );
     const current = updated.find((t) => t.id === id) as Template;
-    this.templates$.next(updated);
+    this.persist(updated);
     return of(current).pipe(delay(150));
   }
 
@@ -51,7 +78,7 @@ export class TemplateService {
   }
 
   delete(id: string): Observable<void> {
-    this.templates$.next(this.templates$.value.filter((template) => template.id !== id));
+    this.persist(this.templates$.value.filter((template) => template.id !== id));
     return of(void 0).pipe(delay(150));
   }
 

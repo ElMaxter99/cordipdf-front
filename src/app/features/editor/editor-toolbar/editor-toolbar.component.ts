@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSelectModule } from '@angular/material/select';
+import { MatFormFieldModule } from '@angular/material/form-field';
 
 @Component({
   selector: 'app-editor-toolbar',
@@ -21,7 +22,8 @@ import { MatSelectModule } from '@angular/material/select';
     MatIconModule,
     MatMenuModule,
     MatTooltipModule,
-    MatSelectModule
+    MatSelectModule,
+    MatFormFieldModule
   ],
   template: `
     <mat-toolbar color="primary" class="editor-toolbar">
@@ -43,9 +45,17 @@ import { MatSelectModule } from '@angular/material/select';
         </button>
       </div>
       <div class="right">
-        <mat-select [(ngModel)]="zoom" (ngModelChange)="zoomChange.emit($event)" aria-label="Zoom" class="zoom-select">
-          <mat-option *ngFor="let level of zoomLevels" [value]="level">{{ level * 100 }}%</mat-option>
-        </mat-select>
+        <mat-form-field appearance="fill" class="zoom-field">
+          <mat-label>Zoom</mat-label>
+          <mat-select
+            [(ngModel)]="zoom"
+            (ngModelChange)="zoomChange.emit($event)"
+            aria-label="Zoom"
+            panelClass="zoom-panel"
+          >
+            <mat-option *ngFor="let level of zoomLevels" [value]="level">{{ level * 100 }}%</mat-option>
+          </mat-select>
+        </mat-form-field>
         <button mat-icon-button matTooltip="Vista previa" (click)="preview.emit()">
           <mat-icon>visibility</mat-icon>
         </button>
@@ -68,9 +78,19 @@ import { MatSelectModule } from '@angular/material/select';
         align-items: center;
         gap: 0.5rem;
       }
-      .zoom-select {
-        min-width: 120px;
-        color: inherit;
+      .zoom-field {
+        width: 140px;
+        --mdc-filled-text-field-container-color: rgba(255, 255, 255, 0.16);
+        --mdc-filled-text-field-input-text-color: #fff;
+        --mdc-filled-text-field-label-text-color: #e0f7fa;
+        --mdc-filled-text-field-focus-label-text-color: #fff;
+        --mdc-filled-text-field-hover-label-text-color: #fff;
+      }
+      ::ng-deep .zoom-panel {
+        margin-top: 0.25rem;
+      }
+      ::ng-deep .zoom-panel .mat-mdc-option {
+        font-variant-numeric: tabular-nums;
       }
     `
   ]
