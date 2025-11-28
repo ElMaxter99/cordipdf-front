@@ -866,7 +866,24 @@ export class TemplateEditorComponent implements OnInit, OnDestroy, AfterViewInit
     if (!src || !this.viewReady) return;
     this.pdfDoc = await getDocument(src as any).promise;
     this.pdfTotalPages.set(this.pdfDoc.numPages);
+    this.alignPagesWithPdf();
     await this.renderCurrentPage();
+  }
+
+  private alignPagesWithPdf(): void {
+    if (!this.pdfDoc) return;
+    const total = this.pdfDoc.numPages;
+    this.pages.update((current) => {
+      const byNumber = new Map(current.map((page) => [page.num, page]));
+      const normalized: TemplatePage[] = [];
+      for (let num = 1; num <= total; num++) {
+        normalized.push(byNumber.get(num) ?? { num, fields: [] });
+      }
+      return normalized;
+    });
+    if (this.selectedPage() > total) {
+      this.selectedPage.set(total);
+    }
   }
 
   private async renderCurrentPage(): Promise<void> {
