@@ -1,10 +1,13 @@
 import {
+  AfterViewInit,
   Component,
+  ElementRef,
   OnDestroy,
   OnInit,
   computed,
   inject,
-  signal
+  signal,
+  ViewChild
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -20,13 +23,16 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { EditorToolbarComponent } from './editor-toolbar/editor-toolbar.component';
-import { PdfViewerComponent, PdfPageDimensions } from '../../shared/components/pdf-viewer/pdf-viewer.component';
-import { EditorCanvasComponent } from './editor-canvas/editor-canvas.component';
+import { PdfPageDimensions } from '../../shared/components/pdf-viewer/pdf-viewer.component';
 import { FieldPropertiesPanelComponent } from './field-properties-panel/field-properties-panel.component';
 import { Template, TemplateField, TemplatePage } from '../../shared/models/template.model';
 import { TemplateService } from '../../services/template.service';
 import { UndoRedoService } from '../../utils/undo-redo.service';
 import { KeyboardShortcutsService } from '../../utils/keyboard-shortcuts.service';
+import { GlobalWorkerOptions, PDFDocumentProxy, getDocument } from 'pdfjs-dist';
+
+const workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url);
+GlobalWorkerOptions.workerSrc = workerSrc.toString();
 
 @Component({
   selector: 'app-template-editor',
@@ -45,8 +51,6 @@ import { KeyboardShortcutsService } from '../../utils/keyboard-shortcuts.service
     MatInputModule,
     MatTooltipModule,
     EditorToolbarComponent,
-    PdfViewerComponent,
-    EditorCanvasComponent,
     FieldPropertiesPanelComponent
   ],
   template: `
@@ -237,25 +241,20 @@ import { KeyboardShortcutsService } from '../../utils/keyboard-shortcuts.service
               <div class="pdf-wrapper" *ngIf="pageDimensions(); else emptyPage">
                 <div
                   class="pdf-stage"
+                  #pdfStage
                   [style.width.px]="pageDimensions()?.width || 0"
                   [style.height.px]="pageDimensions()?.height || 0"
                 >
-                  <app-pdf-viewer
-                    [src]="template()?.pdfUrl || null"
-                    [zoom]="zoom()"
-                    [page]="selectedPage()"
-                    (dimensions)="onPdfDimensions($event)"
-                  ></app-pdf-viewer>
-                  <app-editor-canvas
-                    *ngIf="pageDimensions() as dims"
-                    [fields]="currentFields()"
-                    [width]="dims.width"
-                    [height]="dims.height"
-                    [zoom]="zoom()"
-                    [selectedFieldId]="selectedFieldId()"
-                    (fieldSelected)="onFieldSelected($event)"
-                    (fieldUpdated)="onFieldUpdated($event)"
-                  ></app-editor-canvas>
+                  <canvas #pdfCanvas class="pdf-canvas"></canvas>
+                  <canvas #overlayCanvas class="overlay-canvas"></canvas>
+                  <div #annotationsLayer class="annotations-layer"></div>
+                  <div
+                    #hitbox
+                    class="hitbox"
+                    (click)="onHitboxClick($event)"
+                    (mousemove)="updateCursor($event)"
+                    (mouseleave)="clearCursor()"
+                  ></div>
                 </div>
               </div>
               <ng-template #emptyPage>
@@ -507,6 +506,51 @@ import { KeyboardShortcutsService } from '../../utils/keyboard-shortcuts.service
       }
       .pdf-stage {
         position: relative;
+        background: var(--mat-sys-surface-container);
+        border-radius: 0.75rem;
+        overflow: hidden;
+      }
+      .pdf-canvas,
+      .overlay-canvas,
+      .annotations-layer,
+      .hitbox {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      .pdf-canvas {
+        z-index: 1;
+      }
+      .overlay-canvas {
+        z-index: 2;
+        pointer-events: none;
+      }
+      .annotations-layer {
+        z-index: 4;
+        pointer-events: none;
+      }
+      .annotations-layer .annotation {
+        position: absolute;
+        border-radius: 4px;
+        border: 1px dashed transparent;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        padding: 4px 6px;
+        box-sizing: border-box;
+        cursor: move;
+        pointer-events: auto;
+      }
+      .annotations-layer .annotation.selected {
+        border-color: var(--mat-sys-primary);
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+      }
+      .annotations-layer .annotation.locked {
+        cursor: not-allowed;
+        opacity: 0.8;
+      }
+      .hitbox {
+        z-index: 3;
+        cursor: crosshair;
       }
       .empty {
         padding: 2rem;
@@ -548,7 +592,7 @@ import { KeyboardShortcutsService } from '../../utils/keyboard-shortcuts.service
     `
   ]
 })
-export class TemplateEditorComponent implements OnInit, OnDestroy {
+export class TemplateEditorComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly route = inject(ActivatedRoute);
   private readonly templateService = inject(TemplateService);
   private readonly snack = inject(MatSnackBar);
@@ -559,12 +603,20 @@ export class TemplateEditorComponent implements OnInit, OnDestroy {
   protected readonly currentYear = new Date().getFullYear();
   protected readonly zoomLevels = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
+  @ViewChild('pdfCanvas') pdfCanvas?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('overlayCanvas') overlayCanvas?: ElementRef<HTMLCanvasElement>;
+  @ViewChild('annotationsLayer') annotationsLayer?: ElementRef<HTMLDivElement>;
+  @ViewChild('hitbox') hitbox?: ElementRef<HTMLDivElement>;
+  @ViewChild('pdfStage') pdfStage?: ElementRef<HTMLDivElement>;
+
   protected readonly zoom = signal(1);
   protected readonly language = signal<'es' | 'en'>('es');
   protected readonly theme = signal<'light' | 'dark'>('light');
   protected readonly mode = signal<'edit' | 'preview'>('edit');
   protected readonly jsonViewMode = signal<'text' | 'tree'>('text');
   protected readonly guides = signal({ grid: false, rulers: false, snap: true });
+  protected readonly cursorPdfCoords = signal<{ x: number; y: number } | null>(null);
+  protected readonly pdfTotalPages = signal(1);
 
   protected importBuffer = '';
 
@@ -579,7 +631,7 @@ export class TemplateEditorComponent implements OnInit, OnDestroy {
   protected readonly flatFields = computed(() =>
     this.pages().flatMap((page) => page.fields.map((field) => ({ ...field, page: page.num })))
   );
-  protected readonly totalPages = computed(() => Math.max(this.pages().length || 1, this.pdfDimensions().length || 1));
+  protected readonly totalPages = computed(() => Math.max(this.pages().length || 1, this.pdfTotalPages()));
 
   protected readonly currentFields = computed(() => {
     const page = this.pages().find((p) => p.num === this.selectedPage());
@@ -590,6 +642,11 @@ export class TemplateEditorComponent implements OnInit, OnDestroy {
     () => this.currentFields().find((f) => f.id === this.selectedFieldId()) ?? null
   );
 
+  private pdfDoc: PDFDocumentProxy | null = null;
+  private viewReady = false;
+  private currentViewportHeight = 0;
+  private currentViewportWidth = 0;
+
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
@@ -599,9 +656,15 @@ export class TemplateEditorComponent implements OnInit, OnDestroy {
         this.selectedPage.set(tpl.pages[0]?.num ?? 1);
         this.undoRedo.clear();
         this.undoRedo.push(this.pages());
+        this.loadPdf();
       });
     }
     this.shortcuts.registerSaveShortcut(() => this.saveTemplate());
+  }
+
+  ngAfterViewInit(): void {
+    this.viewReady = true;
+    this.loadPdf();
   }
 
   ngOnDestroy(): void {
@@ -610,6 +673,7 @@ export class TemplateEditorComponent implements OnInit, OnDestroy {
 
   setZoom(level: number): void {
     this.zoom.set(level);
+    this.renderCurrentPage();
   }
 
   setLanguage(lang: 'es' | 'en'): void {
@@ -632,19 +696,10 @@ export class TemplateEditorComponent implements OnInit, OnDestroy {
     this.mode.set(this.mode() === 'preview' ? 'edit' : 'preview');
   }
 
-  onPdfDimensions(dimensions: PdfPageDimensions[]): void {
-    this.pdfDimensions.set(dimensions);
-    const page = dimensions.find((d) => d.num === this.selectedPage());
-    if (page) {
-      this.pageDimensions.set(page);
-    }
-  }
-
   selectPage(pageNum: number): void {
     this.selectedPage.set(pageNum);
-    const dims = this.pdfDimensions().find((d) => d.num === pageNum) ?? null;
-    this.pageDimensions.set(dims);
     this.selectedFieldId.set(null);
+    this.renderCurrentPage();
   }
 
   previousPage(): void {
@@ -659,11 +714,11 @@ export class TemplateEditorComponent implements OnInit, OnDestroy {
     }
   }
 
-  addField(type: 'text' | 'image'): void {
+  addField(type: 'text' | 'image', coords?: { x: number; y: number }): void {
     const field: TemplateField = {
       id: crypto.randomUUID(),
-      x: 120,
-      y: 120,
+      x: coords?.x ?? 120,
+      y: coords?.y ?? 120,
       width: 200,
       height: 32,
       mapField: type === 'text' ? 'Nuevo texto' : 'Imagen',
@@ -680,15 +735,19 @@ export class TemplateEditorComponent implements OnInit, OnDestroy {
     this.recordState();
     this.updatePageFields((fields) => [...fields, field]);
     this.selectedFieldId.set(field.id);
+    this.redrawAnnotations();
   }
 
   onFieldSelected(id: string): void {
     this.selectedFieldId.set(id);
+    this.redrawAnnotations();
   }
 
   onFieldUpdated(field: TemplateField): void {
     this.recordState();
     this.updatePageFields((fields) => fields.map((f) => (f.id === field.id ? field : f)));
+    this.selectedFieldId.set(field.id);
+    this.redrawAnnotations();
   }
 
   saveTemplate(): void {
@@ -703,6 +762,7 @@ export class TemplateEditorComponent implements OnInit, OnDestroy {
     const state = this.undoRedo.undo(this.pages());
     if (state) {
       this.pages.set(state);
+      this.redrawAnnotations();
     }
   }
 
@@ -710,6 +770,7 @@ export class TemplateEditorComponent implements OnInit, OnDestroy {
     const state = this.undoRedo.redo(this.pages());
     if (state) {
       this.pages.set(state);
+      this.redrawAnnotations();
     }
   }
 
@@ -717,6 +778,7 @@ export class TemplateEditorComponent implements OnInit, OnDestroy {
     this.recordState();
     this.updatePageFields(() => []);
     this.selectedFieldId.set(null);
+    this.redrawAnnotations();
   }
 
   downloadAnnotatedJson(): void {
@@ -746,6 +808,7 @@ export class TemplateEditorComponent implements OnInit, OnDestroy {
       this.undoRedo.clear();
       this.undoRedo.push(this.pages());
       this.snack.open('Coordenadas aplicadas', 'Cerrar', { duration: 1500 });
+      this.redrawAnnotations();
     } catch (error) {
       this.snack.open('No se pudo importar el JSON', 'Cerrar', { duration: 2000 });
     }
@@ -771,11 +834,265 @@ export class TemplateEditorComponent implements OnInit, OnDestroy {
 
   toggleGuide(key: 'grid' | 'rulers' | 'snap'): void {
     this.guides.update((current) => ({ ...current, [key]: !current[key] }));
+    this.refreshOverlay();
+  }
+
+  async onHitboxClick(event: MouseEvent): Promise<void> {
+    const coords = this.domToPdfCoords(event);
+    if (!coords) return;
+    const baseWidth = 200;
+    const baseHeight = 32;
+    const x = this.clamp(coords.x - baseWidth / 2, 0, Math.max(0, this.currentViewportWidth - baseWidth));
+    const y = this.clamp(coords.y - baseHeight / 2, 0, Math.max(0, this.currentViewportHeight - baseHeight));
+    this.addField('text', { x, y });
+  }
+
+  updateCursor(event: MouseEvent): void {
+    const coords = this.domToPdfCoords(event);
+    this.cursorPdfCoords.set(coords);
+  }
+
+  clearCursor(): void {
+    this.cursorPdfCoords.set(null);
   }
 
   pageSizeLabel(pageNum: number): string {
     const dims = this.pdfDimensions().find((d) => d.num === pageNum);
     return dims ? `${Math.round(dims.width)} × ${Math.round(dims.height)} px` : 'Sin medidas';
+  }
+
+  private async loadPdf(): Promise<void> {
+    const src = this.template()?.pdfUrl;
+    if (!src || !this.viewReady) return;
+    this.pdfDoc = await getDocument(src as any).promise;
+    this.pdfTotalPages.set(this.pdfDoc.numPages);
+    await this.renderCurrentPage();
+  }
+
+  private async renderCurrentPage(): Promise<void> {
+    if (!this.pdfDoc || !this.pdfCanvas || !this.overlayCanvas || !this.annotationsLayer) return;
+
+    const safePage = Math.min(this.selectedPage(), this.pdfDoc.numPages);
+    if (safePage !== this.selectedPage()) {
+      this.selectedPage.set(safePage);
+    }
+    const page = await this.pdfDoc.getPage(safePage);
+    const viewport = page.getViewport({ scale: this.zoom() });
+
+    const pdfCanvas = this.pdfCanvas.nativeElement;
+    const overlayCanvas = this.overlayCanvas.nativeElement;
+    const annotationsLayer = this.annotationsLayer.nativeElement;
+
+    pdfCanvas.width = viewport.width;
+    pdfCanvas.height = viewport.height;
+    pdfCanvas.style.width = `${viewport.width}px`;
+    pdfCanvas.style.height = `${viewport.height}px`;
+
+    overlayCanvas.width = viewport.width;
+    overlayCanvas.height = viewport.height;
+    overlayCanvas.style.width = `${viewport.width}px`;
+    overlayCanvas.style.height = `${viewport.height}px`;
+
+    annotationsLayer.style.width = `${viewport.width}px`;
+    annotationsLayer.style.height = `${viewport.height}px`;
+
+    const ctx = pdfCanvas.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, viewport.width, viewport.height);
+      await page.render({ canvasContext: ctx, viewport }).promise;
+    }
+
+    this.pageDimensions.set({ num: safePage, width: viewport.width, height: viewport.height });
+    this.pdfDimensions.update((current) => {
+      const filtered = current.filter((item) => item.num !== safePage);
+      return [...filtered, { num: safePage, width: viewport.width, height: viewport.height }];
+    });
+
+    this.currentViewportHeight = viewport.height;
+    this.currentViewportWidth = viewport.width;
+
+    this.refreshOverlay();
+    this.redrawAnnotations();
+  }
+
+  private refreshOverlay(): void {
+    const canvas = this.overlayCanvas?.nativeElement;
+    if (!canvas || !canvas.getContext) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (this.guides().grid) {
+      this.drawGrid(ctx, canvas.width, canvas.height);
+    }
+    if (this.guides().rulers) {
+      this.drawRulers(ctx, canvas.width, canvas.height);
+    }
+    this.drawStaticGuides(ctx, canvas.width, canvas.height);
+  }
+
+  private drawGrid(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+    const step = 40 * this.zoom();
+    ctx.save();
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= width; x += step) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= height; y += step) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  private drawRulers(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+    const step = 40 * this.zoom();
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+    ctx.lineWidth = 1;
+
+    for (let x = 0; x <= width; x += step) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, 12);
+      ctx.stroke();
+      ctx.fillText(Math.round(x / this.zoom()).toString(), x + 2, 10);
+    }
+
+    for (let y = 0; y <= height; y += step) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(12, y);
+      ctx.stroke();
+      ctx.fillText(Math.round(y / this.zoom()).toString(), 4, y + 10);
+    }
+
+    ctx.restore();
+  }
+
+  private drawStaticGuides(ctx: CanvasRenderingContext2D, width: number, height: number): void {
+    ctx.save();
+    ctx.strokeStyle = 'rgba(56, 126, 245, 0.35)';
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([6, 6]);
+
+    ctx.beginPath();
+    ctx.moveTo(width / 2, 0);
+    ctx.lineTo(width / 2, height);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, height / 2);
+    ctx.lineTo(width, height / 2);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  private redrawAnnotations(): void {
+    const layer = this.annotationsLayer?.nativeElement;
+    if (!layer || !this.pageDimensions()) return;
+    layer.innerHTML = '';
+
+    this.currentFields().forEach((field) => {
+      const el = document.createElement('div');
+      el.classList.add('annotation');
+      if (field.id === this.selectedFieldId()) {
+        el.classList.add('selected');
+      }
+      if (field.locked) {
+        el.classList.add('locked');
+      }
+
+      this.positionElement(el, field, field.x, field.y);
+
+      el.style.background = field.backgroundColor || 'rgba(255,255,255,0.85)';
+      el.style.color = field.color;
+      el.style.opacity = `${field.opacity}`;
+      el.style.fontFamily = field.fontFamily;
+      el.style.fontSize = `${field.fontSize * this.zoom()}px`;
+      el.innerText = field.value ?? field.mapField;
+
+      el.addEventListener('click', (evt) => {
+        evt.stopPropagation();
+        this.onFieldSelected(field.id);
+      });
+
+      el.addEventListener('pointerdown', (evt) => this.startFieldDrag(evt, field));
+      layer.appendChild(el);
+    });
+  }
+
+  private startFieldDrag(event: PointerEvent, field: TemplateField): void {
+    if (field.locked) return;
+    const start = this.domToPdfCoords(event);
+    if (!start) return;
+    event.preventDefault();
+
+    const offsetX = start.x - field.x;
+    const offsetY = start.y - field.y;
+    const move = (moveEvent: PointerEvent) => {
+      const coords = this.domToPdfCoords(moveEvent);
+      if (!coords) return;
+      const newX = this.clamp(
+        coords.x - offsetX,
+        0,
+        Math.max(0, this.currentViewportWidth - (field.width ?? 180))
+      );
+      const newY = this.clamp(
+        coords.y - offsetY,
+        0,
+        Math.max(0, this.currentViewportHeight - (field.height ?? 28))
+      );
+      const element = moveEvent.currentTarget as HTMLElement;
+      if (element) {
+        this.positionElement(element, field, newX, newY);
+      }
+    };
+
+    const up = (upEvent: PointerEvent) => {
+      window.removeEventListener('pointermove', move);
+      const coords = this.domToPdfCoords(upEvent);
+      const newX = coords
+        ? this.clamp(coords.x - offsetX, 0, Math.max(0, this.currentViewportWidth - (field.width ?? 180)))
+        : field.x;
+      const newY = coords
+        ? this.clamp(coords.y - offsetY, 0, Math.max(0, this.currentViewportHeight - (field.height ?? 28)))
+        : field.y;
+      this.onFieldUpdated({ ...field, x: newX, y: newY });
+    };
+
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up, { once: true });
+  }
+
+  private domToPdfCoords(event: MouseEvent): { x: number; y: number } | null {
+    if (!this.pdfStage) return null;
+    const rect = this.pdfStage.nativeElement.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / this.zoom();
+    const y = this.currentViewportHeight - (event.clientY - rect.top) / this.zoom();
+    if (Number.isNaN(x) || Number.isNaN(y)) return null;
+    return { x, y };
+  }
+
+  private positionElement(el: HTMLElement, field: TemplateField, x: number, y: number): void {
+    const width = (field.width ?? 180) * this.zoom();
+    const height = (field.height ?? 28) * this.zoom();
+    el.style.width = `${width}px`;
+    el.style.height = `${height}px`;
+    el.style.left = `${x * this.zoom()}px`;
+    el.style.top = `${(this.currentViewportHeight - y - (field.height ?? 28)) * this.zoom()}px`;
+  }
+
+  private clamp(value: number, min: number, max: number): number {
+    return Math.min(Math.max(value, min), max);
   }
 
   private updatePageFields(updateFn: (fields: TemplateField[]) => TemplateField[]): void {
