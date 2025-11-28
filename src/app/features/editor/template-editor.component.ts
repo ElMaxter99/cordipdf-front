@@ -2,6 +2,7 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
+  HostListener,
   OnDestroy,
   OnInit,
   computed,
@@ -22,10 +23,11 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { EditorToolbarComponent } from './editor-toolbar/editor-toolbar.component';
 import { PdfPageDimensions } from '../../shared/components/pdf-viewer/pdf-viewer.component';
 import { FieldPropertiesPanelComponent } from './field-properties-panel/field-properties-panel.component';
-import { Template, TemplateField, TemplatePage } from '../../shared/models/template.model';
+import { FONT_OPTIONS, Template, TemplateField, TemplatePage } from '../../shared/models/template.model';
 import { TemplateService } from '../../services/template.service';
 import { UndoRedoService } from '../../utils/undo-redo.service';
 import { KeyboardShortcutsService } from '../../utils/keyboard-shortcuts.service';
@@ -50,6 +52,7 @@ GlobalWorkerOptions.workerSrc = workerSrc.toString();
     MatProgressSpinnerModule,
     MatInputModule,
     MatTooltipModule,
+    MatSlideToggleModule,
     EditorToolbarComponent,
     FieldPropertiesPanelComponent
   ],
@@ -248,6 +251,163 @@ GlobalWorkerOptions.workerSrc = workerSrc.toString();
                   <canvas #pdfCanvas class="pdf-canvas"></canvas>
                   <canvas #overlayCanvas class="overlay-canvas"></canvas>
                   <div #annotationsLayer class="annotations-layer"></div>
+                  <div class="editor-layer" *ngIf="pageDimensions()">
+                    <div class="backdrop" *ngIf="previewField()" (click)="cancelPreview()"></div>
+                    <div
+                      #previewModal
+                      class="floating-editor"
+                      *ngIf="previewField() as field"
+                      [ngStyle]="editorStyle(field)"
+                      (click)="$event.stopPropagation()"
+                    >
+                      <header>
+                        <h4>Nuevo campo</h4>
+                        <button mat-icon-button (click)="cancelPreview()" aria-label="Cerrar">
+                          <mat-icon>close</mat-icon>
+                        </button>
+                      </header>
+                      <form class="editor-form">
+                        <mat-form-field appearance="fill">
+                          <mat-label>Tipo</mat-label>
+                          <mat-select [(ngModel)]="field.type" name="previewType">
+                            <mat-option value="text">Texto</mat-option>
+                            <mat-option value="image">Imagen</mat-option>
+                          </mat-select>
+                        </mat-form-field>
+                        <mat-form-field appearance="fill">
+                          <mat-label>Texto</mat-label>
+                          <input matInput [(ngModel)]="field.mapField" name="previewMapField" />
+                        </mat-form-field>
+                        <div class="inline">
+                          <mat-form-field appearance="fill">
+                            <mat-label>Tamaño</mat-label>
+                            <input matInput type="number" [(ngModel)]="field.fontSize" name="previewFontSize" />
+                          </mat-form-field>
+                          <mat-form-field appearance="fill">
+                            <mat-label>Opacidad</mat-label>
+                            <input
+                              matInput
+                              type="number"
+                              min="0"
+                              max="1"
+                              step="0.1"
+                              [(ngModel)]="field.opacity"
+                              name="previewOpacity"
+                            />
+                          </mat-form-field>
+                        </div>
+                        <div class="inline">
+                          <mat-form-field appearance="fill">
+                            <mat-label>Color</mat-label>
+                            <input matInput type="color" [(ngModel)]="field.color" name="previewColor" />
+                          </mat-form-field>
+                          <mat-form-field appearance="fill">
+                            <mat-label>Fondo</mat-label>
+                            <input matInput type="color" [(ngModel)]="field.backgroundColor" name="previewBg" />
+                          </mat-form-field>
+                        </div>
+                        <mat-form-field appearance="fill">
+                          <mat-label>Fuente</mat-label>
+                          <mat-select [(ngModel)]="field.fontFamily" name="previewFont">
+                            <mat-option *ngFor="let font of fonts" [value]="font">{{ font }}</mat-option>
+                          </mat-select>
+                        </mat-form-field>
+                        <mat-form-field appearance="fill">
+                          <mat-label>Valor</mat-label>
+                          <input matInput [(ngModel)]="field.value" name="previewValue" />
+                        </mat-form-field>
+                        <div class="toggle-row">
+                          <mat-slide-toggle [(ngModel)]="field.locked" name="previewLocked">Bloquear</mat-slide-toggle>
+                          <mat-slide-toggle [(ngModel)]="field.hidden" name="previewHidden">Ocultar</mat-slide-toggle>
+                        </div>
+                        <div class="actions">
+                          <button mat-stroked-button color="primary" type="button" (click)="confirmPreview()">✅ Confirmar</button>
+                          <button mat-button type="button" (click)="cancelPreview()">❌ Cancelar</button>
+                        </div>
+                      </form>
+                    </div>
+
+                    <div
+                      #editModal
+                      class="floating-editor"
+                      *ngIf="editingField() as field"
+                      [ngStyle]="editorStyle(field)"
+                      (mousedown)="$event.stopPropagation()"
+                    >
+                      <header>
+                        <h4>Editar campo</h4>
+                        <div class="header-actions">
+                          <button mat-icon-button (click)="deleteAnnotation(field.id)" aria-label="Eliminar">
+                            <mat-icon>delete</mat-icon>
+                          </button>
+                          <button mat-icon-button (click)="cancelEdit()" aria-label="Cerrar">
+                            <mat-icon>close</mat-icon>
+                          </button>
+                        </div>
+                      </header>
+                      <form class="editor-form">
+                        <mat-form-field appearance="fill">
+                          <mat-label>Tipo</mat-label>
+                          <mat-select [(ngModel)]="field.type" name="editType" [disabled]="field.locked">
+                            <mat-option value="text">Texto</mat-option>
+                            <mat-option value="image">Imagen</mat-option>
+                          </mat-select>
+                        </mat-form-field>
+                        <mat-form-field appearance="fill">
+                          <mat-label>Texto</mat-label>
+                          <input matInput [(ngModel)]="field.mapField" name="editMapField" [disabled]="field.locked" />
+                        </mat-form-field>
+                        <div class="inline">
+                          <mat-form-field appearance="fill">
+                            <mat-label>Tamaño</mat-label>
+                            <input matInput type="number" [(ngModel)]="field.fontSize" name="editFontSize" [disabled]="field.locked" />
+                          </mat-form-field>
+                          <mat-form-field appearance="fill">
+                            <mat-label>Opacidad</mat-label>
+                            <input
+                              matInput
+                              type="number"
+                              min="0"
+                              max="1"
+                              step="0.1"
+                              [(ngModel)]="field.opacity"
+                              name="editOpacity"
+                              [disabled]="field.locked"
+                            />
+                          </mat-form-field>
+                        </div>
+                        <div class="inline">
+                          <mat-form-field appearance="fill">
+                            <mat-label>Color</mat-label>
+                            <input matInput type="color" [(ngModel)]="field.color" name="editColor" [disabled]="field.locked" />
+                          </mat-form-field>
+                          <mat-form-field appearance="fill">
+                            <mat-label>Fondo</mat-label>
+                            <input matInput type="color" [(ngModel)]="field.backgroundColor" name="editBg" [disabled]="field.locked" />
+                          </mat-form-field>
+                        </div>
+                        <mat-form-field appearance="fill">
+                          <mat-label>Fuente</mat-label>
+                          <mat-select [(ngModel)]="field.fontFamily" name="editFont" [disabled]="field.locked">
+                            <mat-option *ngFor="let font of fonts" [value]="font">{{ font }}</mat-option>
+                          </mat-select>
+                        </mat-form-field>
+                        <mat-form-field appearance="fill">
+                          <mat-label>Valor</mat-label>
+                          <input matInput [(ngModel)]="field.value" name="editValue" />
+                        </mat-form-field>
+                        <div class="toggle-row">
+                          <mat-slide-toggle [(ngModel)]="field.locked" name="editLocked">Bloquear</mat-slide-toggle>
+                          <mat-slide-toggle [(ngModel)]="field.hidden" name="editHidden">Ocultar</mat-slide-toggle>
+                        </div>
+                        <div class="actions">
+                          <button mat-flat-button color="primary" type="button" (click)="confirmEdit()">✅ Guardar</button>
+                          <button mat-stroked-button type="button" (click)="duplicateField(field)">Duplicar</button>
+                          <button mat-button type="button" (click)="cancelEdit()">Cancelar</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
                   <div
                     #hitbox
                     class="hitbox"
@@ -511,7 +671,8 @@ GlobalWorkerOptions.workerSrc = workerSrc.toString();
       .pdf-canvas,
       .overlay-canvas,
       .annotations-layer,
-      .hitbox {
+      .hitbox,
+      .editor-layer {
         position: absolute;
         inset: 0;
         width: 100%;
@@ -549,6 +710,60 @@ GlobalWorkerOptions.workerSrc = workerSrc.toString();
       .hitbox {
         z-index: 3;
         cursor: crosshair;
+      }
+      .editor-layer {
+        z-index: 3;
+        pointer-events: none;
+      }
+      .editor-layer .backdrop {
+        position: absolute;
+        inset: 0;
+        background: transparent;
+        pointer-events: auto;
+      }
+      .floating-editor {
+        position: absolute;
+        transform: translate(-50%, -10%);
+        min-width: 260px;
+        max-width: 320px;
+        padding: 0.5rem;
+        border-radius: 0.75rem;
+        background: var(--mat-sys-surface-container-highest);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+        pointer-events: auto;
+        display: grid;
+        gap: 0.5rem;
+      }
+      .floating-editor header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+      }
+      .floating-editor .editor-form {
+        display: grid;
+        gap: 0.35rem;
+      }
+      .floating-editor .inline {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.35rem;
+      }
+      .floating-editor .actions {
+        display: flex;
+        gap: 0.35rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+      }
+      .floating-editor .toggle-row {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      .floating-editor .header-actions {
+        display: inline-flex;
+        gap: 0.25rem;
+        align-items: center;
       }
       .pdf-stage .empty {
         position: absolute;
@@ -609,12 +824,15 @@ export class TemplateEditorComponent implements OnInit, OnDestroy, AfterViewInit
   protected readonly version = '1.0.0';
   protected readonly currentYear = new Date().getFullYear();
   protected readonly zoomLevels = [0.5, 0.75, 1, 1.25, 1.5, 2];
+  protected readonly fonts = FONT_OPTIONS;
 
   @ViewChild('pdfCanvas') pdfCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('overlayCanvas') overlayCanvas?: ElementRef<HTMLCanvasElement>;
   @ViewChild('annotationsLayer') annotationsLayer?: ElementRef<HTMLDivElement>;
   @ViewChild('hitbox') hitbox?: ElementRef<HTMLDivElement>;
   @ViewChild('pdfStage') pdfStage?: ElementRef<HTMLDivElement>;
+  @ViewChild('previewModal') previewModal?: ElementRef<HTMLDivElement>;
+  @ViewChild('editModal') editModal?: ElementRef<HTMLDivElement>;
 
   protected readonly zoom = signal(1);
   protected readonly language = signal<'es' | 'en'>('es');
@@ -624,6 +842,8 @@ export class TemplateEditorComponent implements OnInit, OnDestroy, AfterViewInit
   protected readonly guides = signal({ grid: false, rulers: false, snap: true });
   protected readonly cursorPdfCoords = signal<{ x: number; y: number } | null>(null);
   protected readonly pdfTotalPages = signal(1);
+  protected readonly previewField = signal<TemplateField | null>(null);
+  protected readonly editingField = signal<TemplateField | null>(null);
 
   protected importBuffer = '';
 
@@ -739,10 +959,7 @@ export class TemplateEditorComponent implements OnInit, OnDestroy, AfterViewInit
       hidden: false,
       value: null
     };
-    this.recordState();
-    this.updatePageFields((fields) => [...fields, field]);
-    this.selectedFieldId.set(field.id);
-    this.redrawAnnotations();
+    this.openPreview(field);
   }
 
   onFieldSelected(id: string): void {
@@ -845,13 +1062,30 @@ export class TemplateEditorComponent implements OnInit, OnDestroy, AfterViewInit
   }
 
   async onHitboxClick(event: MouseEvent): Promise<void> {
+    if (!this.pageDimensions() || this.editingField() || this.previewField()) return;
     const coords = this.domToPdfCoords(event);
     if (!coords) return;
     const baseWidth = 200;
     const baseHeight = 32;
     const x = this.clamp(coords.x - baseWidth / 2, 0, Math.max(0, this.currentViewportWidth - baseWidth));
     const y = this.clamp(coords.y - baseHeight / 2, 0, Math.max(0, this.currentViewportHeight - baseHeight));
-    this.addField('text', { x, y });
+    this.openPreview({
+      id: crypto.randomUUID(),
+      x,
+      y,
+      width: baseWidth,
+      height: baseHeight,
+      mapField: 'Nuevo texto',
+      fontSize: 14,
+      color: '#1a1a1a',
+      type: 'text',
+      fontFamily: 'standard:roboto',
+      opacity: 1,
+      backgroundColor: '#ffffff',
+      locked: false,
+      hidden: false,
+      value: ''
+    });
   }
 
   updateCursor(event: MouseEvent): void {
@@ -861,6 +1095,89 @@ export class TemplateEditorComponent implements OnInit, OnDestroy, AfterViewInit
 
   clearCursor(): void {
     this.cursorPdfCoords.set(null);
+  }
+
+  @HostListener('document:click', ['$event'])
+  closeFloatingEditors(event: MouseEvent): void {
+    const target = event.target as Node;
+    if (this.previewModal?.nativeElement.contains(target) || this.editModal?.nativeElement.contains(target)) return;
+    if (this.pdfStage?.nativeElement.contains(target)) return;
+    if (this.previewField()) this.cancelPreview();
+    if (this.editingField()) this.cancelEdit();
+  }
+
+  @HostListener('document:mousedown', ['$event'])
+  closeEditOnOutsideMouseDown(event: MouseEvent): void {
+    if (!this.editingField()) return;
+    const target = event.target as Node;
+    if (this.editModal?.nativeElement.contains(target)) return;
+    this.cancelEdit();
+  }
+
+  confirmPreview(): void {
+    const field = this.previewField();
+    if (!field || !this.fieldHasRenderableContent(field)) {
+      this.cancelPreview();
+      return;
+    }
+    const normalized = this.normalizeField(field);
+    this.recordState();
+    this.updatePageFields((fields) => [...fields, normalized]);
+    this.selectedFieldId.set(normalized.id);
+    this.previewField.set(null);
+    this.redrawAnnotations();
+  }
+
+  cancelPreview(): void {
+    this.previewField.set(null);
+  }
+
+  confirmEdit(): void {
+    const field = this.editingField();
+    if (!field || !this.fieldHasRenderableContent(field)) {
+      this.cancelEdit();
+      return;
+    }
+    const normalized = this.normalizeField(field);
+    this.recordState();
+    this.updatePageFields((fields) => fields.map((f) => (f.id === normalized.id ? normalized : f)));
+    this.selectedFieldId.set(normalized.id);
+    this.editingField.set(null);
+    this.redrawAnnotations();
+  }
+
+  cancelEdit(): void {
+    this.editingField.set(null);
+  }
+
+  duplicateField(field: TemplateField): void {
+    const clone: TemplateField = {
+      ...field,
+      id: crypto.randomUUID(),
+      x: this.clamp(field.x + 10, 0, Math.max(0, this.currentViewportWidth - (field.width ?? 180))),
+      y: this.clamp(field.y + 10, 0, Math.max(0, this.currentViewportHeight - (field.height ?? 28)))
+    };
+    this.recordState();
+    this.updatePageFields((fields) => [...fields, clone]);
+    this.startEditing(clone);
+    this.redrawAnnotations();
+  }
+
+  deleteAnnotation(id?: string): void {
+    const targetId = id ?? this.editingField()?.id;
+    if (!targetId) return;
+    this.recordState();
+    this.updatePageFields((fields) => fields.filter((f) => f.id !== targetId));
+    if (this.selectedFieldId() === targetId) {
+      this.selectedFieldId.set(null);
+    }
+    this.cancelEdit();
+    this.redrawAnnotations();
+  }
+
+  editorStyle(field: TemplateField): { left: string; top: string } {
+    const position = this.computeModalPosition(field);
+    return { left: `${position.left}px`, top: `${position.top}px` };
   }
 
   pageSizeLabel(pageNum: number): string {
@@ -1044,27 +1361,40 @@ export class TemplateEditorComponent implements OnInit, OnDestroy, AfterViewInit
       el.style.fontSize = `${field.fontSize * this.zoom()}px`;
       el.innerText = field.value ?? field.mapField;
 
-      el.addEventListener('click', (evt) => {
-        evt.stopPropagation();
-        this.onFieldSelected(field.id);
-      });
-
-      el.addEventListener('pointerdown', (evt) => this.startFieldDrag(evt, field));
+      el.addEventListener('click', (evt) => evt.stopPropagation());
+      el.addEventListener('pointerdown', (evt) => this.handleFieldPointerDown(evt, field, el));
       layer.appendChild(el);
     });
   }
 
-  private startFieldDrag(event: PointerEvent, field: TemplateField): void {
-    if (field.locked) return;
-    const start = this.domToPdfCoords(event);
-    if (!start) return;
-    event.preventDefault();
+  private handleFieldPointerDown(event: PointerEvent, field: TemplateField, element: HTMLElement): void {
+    event.stopPropagation();
+    this.selectedFieldId.set(field.id);
+    if (this.previewField()) {
+      this.cancelPreview();
+    }
 
-    const offsetX = start.x - field.x;
-    const offsetY = start.y - field.y;
+    if (field.locked) {
+      this.startEditing(field);
+      return;
+    }
+
+    const startPoint = { x: event.clientX, y: event.clientY };
+    const startCoords = this.domToPdfCoords(event);
+    if (!startCoords) return;
+
+    const offsetX = startCoords.x - field.x;
+    const offsetY = startCoords.y - field.y;
+    let dragged = false;
+
     const move = (moveEvent: PointerEvent) => {
       const coords = this.domToPdfCoords(moveEvent);
       if (!coords) return;
+      const distance = Math.hypot(moveEvent.clientX - startPoint.x, moveEvent.clientY - startPoint.y);
+      if (distance > 3) {
+        dragged = true;
+      }
+      if (!dragged) return;
       const newX = this.clamp(
         coords.x - offsetX,
         0,
@@ -1075,10 +1405,7 @@ export class TemplateEditorComponent implements OnInit, OnDestroy, AfterViewInit
         0,
         Math.max(0, this.currentViewportHeight - (field.height ?? 28))
       );
-      const element = moveEvent.currentTarget as HTMLElement;
-      if (element) {
-        this.positionElement(element, field, newX, newY);
-      }
+      this.positionElement(element, field, newX, newY);
     };
 
     const up = (upEvent: PointerEvent) => {
@@ -1090,7 +1417,11 @@ export class TemplateEditorComponent implements OnInit, OnDestroy, AfterViewInit
       const newY = coords
         ? this.clamp(coords.y - offsetY, 0, Math.max(0, this.currentViewportHeight - (field.height ?? 28)))
         : field.y;
-      this.onFieldUpdated({ ...field, x: newX, y: newY });
+      if (dragged) {
+        this.onFieldUpdated({ ...field, x: newX, y: newY });
+      } else {
+        this.startEditing(field);
+      }
     };
 
     window.addEventListener('pointermove', move);
@@ -1117,6 +1448,38 @@ export class TemplateEditorComponent implements OnInit, OnDestroy, AfterViewInit
 
   private clamp(value: number, min: number, max: number): number {
     return Math.min(Math.max(value, min), max);
+  }
+
+  private openPreview(field: TemplateField): void {
+    this.editingField.set(null);
+    this.previewField.set({ ...field });
+  }
+
+  private startEditing(field: TemplateField): void {
+    this.previewField.set(null);
+    this.editingField.set({ ...field });
+    this.selectedFieldId.set(field.id);
+  }
+
+  private computeModalPosition(field: TemplateField): { left: number; top: number } {
+    const left = (field.x + (field.width ?? 180) / 2) * this.zoom();
+    const top = (this.currentViewportHeight - field.y) * this.zoom();
+    return { left, top };
+  }
+
+  private fieldHasRenderableContent(field: TemplateField): boolean {
+    return Boolean((field.mapField ?? '').trim() || field.value || field.type === 'image');
+  }
+
+  private normalizeField(field: TemplateField): TemplateField {
+    return {
+      ...field,
+      mapField: (field.mapField ?? '').trim() || 'Campo',
+      fontSize: Number(field.fontSize) || 12,
+      opacity: this.clamp(Number(field.opacity) || 0, 0, 1),
+      width: Number(field.width) || 200,
+      height: Number(field.height) || 32
+    };
   }
 
   private updatePageFields(updateFn: (fields: TemplateField[]) => TemplateField[]): void {
