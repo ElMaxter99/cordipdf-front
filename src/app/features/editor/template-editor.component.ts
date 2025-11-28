@@ -1069,7 +1069,8 @@ export class TemplateEditorComponent implements OnInit, OnDestroy, AfterViewInit
   }
 
   async onHitboxClick(event: MouseEvent): Promise<void> {
-    if (!this.pageDimensions() || this.editingField() || this.previewField()) return;
+    if (!this.pageDimensions() || this.editingField()) return;
+    if (this.previewField()) this.cancelPreview();
     const coords = this.domToPdfCoords(event);
     if (!coords) return;
     const baseWidth = 200;
