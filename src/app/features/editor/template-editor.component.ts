@@ -112,13 +112,7 @@ import { KeyboardShortcutsService } from '../../utils/keyboard-shortcuts.service
       </mat-toolbar>
 
       <div class="workspace-grid">
-        <aside
-          class="sidebar"
-          [class.dragging]="dragging()"
-          (dragover)="onDragOver($event)"
-          (dragleave)="onDragLeave($event)"
-          (drop)="onDrop($event)"
-        >
+        <aside class="sidebar">
           <header class="sidebar-header">
             <div>
               <p class="eyebrow">Plantilla</p>
@@ -127,26 +121,6 @@ import { KeyboardShortcutsService } from '../../utils/keyboard-shortcuts.service
             </div>
             <span class="status">{{ mode() === 'preview' ? 'Preview' : 'Edición' }}</span>
           </header>
-
-          <section class="sidebar-card">
-            <div class="card-head">
-              <h4>PDF</h4>
-              <span class="badge" *ngIf="dragging()">Suelta el archivo</span>
-            </div>
-            <p class="muted">Sube un PDF con click, teclado o arrastrando sobre esta tarjeta.</p>
-            <div class="upload-actions">
-              <button mat-stroked-button color="primary" (click)="fileInput?.click()">
-                <mat-icon>upload_file</mat-icon>
-                Cargar PDF
-              </button>
-              <button mat-button (click)="resetToOriginal()" [disabled]="!tpl.pdfUrl">
-                <mat-icon>refresh</mat-icon>
-                Restaurar
-              </button>
-              <input type="file" accept="application/pdf" hidden (change)="onFileSelected($event)" #fileInput />
-            </div>
-            <p class="muted">{{ tpl.pdfUrl ? tpl.pdfUrl : 'Sin documento cargado' }}</p>
-          </section>
 
           <section class="sidebar-card">
             <div class="card-head">
@@ -392,10 +366,6 @@ import { KeyboardShortcutsService } from '../../utils/keyboard-shortcuts.service
         border: 1px dashed transparent;
         transition: border-color 0.2s ease, background 0.2s ease;
       }
-      .sidebar.dragging {
-        border-color: var(--mat-sys-primary);
-        background: color-mix(in srgb, var(--mat-sys-primary) 8%, transparent);
-      }
       .sidebar-header h3 {
         margin: 0;
       }
@@ -435,18 +405,6 @@ import { KeyboardShortcutsService } from '../../utils/keyboard-shortcuts.service
         justify-content: space-between;
         align-items: center;
         gap: 0.5rem;
-      }
-      .badge {
-        background: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent);
-        border-radius: 999px;
-        padding: 0.15rem 0.65rem;
-        color: var(--mat-sys-primary);
-        font-weight: 600;
-      }
-      .upload-actions {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
       }
       .json-view textarea {
         width: 100%;
@@ -606,7 +564,6 @@ export class TemplateEditorComponent implements OnInit, OnDestroy {
   protected readonly theme = signal<'light' | 'dark'>('light');
   protected readonly mode = signal<'edit' | 'preview'>('edit');
   protected readonly jsonViewMode = signal<'text' | 'tree'>('text');
-  protected readonly dragging = signal(false);
   protected readonly guides = signal({ grid: false, rulers: false, snap: true });
 
   protected importBuffer = '';
@@ -816,54 +773,9 @@ export class TemplateEditorComponent implements OnInit, OnDestroy {
     this.guides.update((current) => ({ ...current, [key]: !current[key] }));
   }
 
-  resetToOriginal(): void {
-    const tpl = this.template();
-    if (!tpl) return;
-    this.template.set({ ...tpl });
-    this.pages.set(JSON.parse(JSON.stringify(tpl.pages)));
-    this.undoRedo.clear();
-    this.undoRedo.push(this.pages());
-    this.snack.open('Documento restaurado', 'Cerrar', { duration: 1500 });
-  }
-
-  onFileSelected(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-    this.uploadPdf(file);
-    input.value = '';
-  }
-
-  onDragOver(event: DragEvent): void {
-    event.preventDefault();
-    this.dragging.set(true);
-  }
-
-  onDragLeave(event: DragEvent): void {
-    event.preventDefault();
-    this.dragging.set(false);
-  }
-
-  onDrop(event: DragEvent): void {
-    event.preventDefault();
-    const file = event.dataTransfer?.files?.[0];
-    if (file) {
-      this.uploadPdf(file);
-    }
-    this.dragging.set(false);
-  }
-
   pageSizeLabel(pageNum: number): string {
     const dims = this.pdfDimensions().find((d) => d.num === pageNum);
     return dims ? `${Math.round(dims.width)} × ${Math.round(dims.height)} px` : 'Sin medidas';
-  }
-
-  private uploadPdf(file: File): void {
-    this.templateService.uploadPdf(file).subscribe((response) => {
-      this.template.update((tpl) => (tpl ? { ...tpl, pdfUrl: response.url, name: response.name } : tpl));
-      this.snack.open('PDF cargado en el editor', 'Cerrar', { duration: 1500 });
-      this.pageDimensions.set(null);
-    });
   }
 
   private updatePageFields(updateFn: (fields: TemplateField[]) => TemplateField[]): void {
