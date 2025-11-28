@@ -45,7 +45,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
         </button>
       </div>
       <div class="right">
-        <mat-form-field appearance="fill" floatLabel="never" class="zoom-field">
+        <mat-form-field appearance="fill" class="zoom-field">
           <mat-label>Zoom</mat-label>
           <mat-select
             [(ngModel)]="zoom"
