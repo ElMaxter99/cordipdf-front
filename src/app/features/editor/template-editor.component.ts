@@ -238,12 +238,12 @@ GlobalWorkerOptions.workerSrc = workerSrc.toString();
                 </button>
               </div>
 
-              <div class="pdf-wrapper" *ngIf="pageDimensions(); else emptyPage">
+              <div class="pdf-wrapper">
                 <div
                   class="pdf-stage"
                   #pdfStage
-                  [style.width.px]="pageDimensions()?.width || 0"
-                  [style.height.px]="pageDimensions()?.height || 0"
+                  [style.width.px]="pageDimensions()?.width || 820"
+                  [style.height.px]="pageDimensions()?.height || 640"
                 >
                   <canvas #pdfCanvas class="pdf-canvas"></canvas>
                   <canvas #overlayCanvas class="overlay-canvas"></canvas>
@@ -255,11 +255,9 @@ GlobalWorkerOptions.workerSrc = workerSrc.toString();
                     (mousemove)="updateCursor($event)"
                     (mouseleave)="clearCursor()"
                   ></div>
+                  <div class="empty" *ngIf="!pageDimensions()">Carga un PDF para empezar a diseñar.</div>
                 </div>
               </div>
-              <ng-template #emptyPage>
-                <div class="empty">Carga un PDF para empezar a diseñar.</div>
-              </ng-template>
             </div>
 
             <div class="properties">
@@ -551,6 +549,15 @@ GlobalWorkerOptions.workerSrc = workerSrc.toString();
       .hitbox {
         z-index: 3;
         cursor: crosshair;
+      }
+      .pdf-stage .empty {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--mat-sys-surface-container);
+        z-index: 5;
       }
       .empty {
         padding: 2rem;
