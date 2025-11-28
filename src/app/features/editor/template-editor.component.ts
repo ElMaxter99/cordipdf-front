@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -818,6 +818,7 @@ export class TemplateEditorComponent implements OnInit, OnDestroy, AfterViewInit
   private readonly route = inject(ActivatedRoute);
   private readonly templateService = inject(TemplateService);
   private readonly snack = inject(MatSnackBar);
+  private readonly router = inject(Router);
   private readonly shortcuts = inject(KeyboardShortcutsService);
   readonly undoRedo = inject<UndoRedoService<TemplatePage[]>>(UndoRedoService);
 
@@ -877,13 +878,19 @@ export class TemplateEditorComponent implements OnInit, OnDestroy, AfterViewInit
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
-      this.templateService.getById(id).subscribe((tpl) => {
-        this.template.set(tpl);
-        this.pages.set(JSON.parse(JSON.stringify(tpl.pages)));
-        this.selectedPage.set(tpl.pages[0]?.num ?? 1);
-        this.undoRedo.clear();
-        this.undoRedo.push(this.pages());
-        this.loadPdf();
+      this.templateService.getById(id).subscribe({
+        next: (tpl) => {
+          this.template.set(tpl);
+          this.pages.set(JSON.parse(JSON.stringify(tpl.pages)));
+          this.selectedPage.set(tpl.pages[0]?.num ?? 1);
+          this.undoRedo.clear();
+          this.undoRedo.push(this.pages());
+          this.loadPdf();
+        },
+        error: () => {
+          this.snack.open('La plantilla no existe o fue eliminada', 'Cerrar', { duration: 3000 });
+          this.router.navigate(['/templates']);
+        }
       });
     }
     this.shortcuts.registerSaveShortcut(() => this.saveTemplate());
