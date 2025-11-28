@@ -108,7 +108,7 @@ GlobalWorkerOptions.workerSrc = workerSrc.toString();
             <mat-option value="es">ES</mat-option>
             <mat-option value="en">EN</mat-option>
           </mat-select>
-          <mat-button-toggle-group [value]="theme()" (valueChange)="setTheme($event.value)">
+          <mat-button-toggle-group [value]="theme()" (valueChange)="setTheme($event)">
             <mat-button-toggle value="light">Claro</mat-button-toggle>
             <mat-button-toggle value="dark">Oscuro</mat-button-toggle>
           </mat-button-toggle-group>
@@ -131,7 +131,7 @@ GlobalWorkerOptions.workerSrc = workerSrc.toString();
               <h4>Coordenadas JSON</h4>
               <mat-button-toggle-group
                 [value]="jsonViewMode()"
-                (valueChange)="setJsonViewMode($event.value)"
+                (valueChange)="setJsonViewMode($event)"
               >
                 <mat-button-toggle value="text">Texto</mat-button-toggle>
                 <mat-button-toggle value="tree">Árbol</mat-button-toggle>
@@ -212,7 +212,7 @@ GlobalWorkerOptions.workerSrc = workerSrc.toString();
               (preview)="togglePreview()"
             ></app-editor-toolbar>
             <div class="mode-toggle">
-              <mat-button-toggle-group [value]="mode()" (valueChange)="setMode($event.value)">
+              <mat-button-toggle-group [value]="mode()" (valueChange)="setMode($event)">
                 <mat-button-toggle value="edit">Editar</mat-button-toggle>
                 <mat-button-toggle value="preview">Preview</mat-button-toggle>
               </mat-button-toggle-group>
